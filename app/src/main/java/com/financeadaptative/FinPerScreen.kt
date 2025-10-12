@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -27,6 +29,7 @@ fun FinPerScreen() {
     val cfg = LocalConfiguration.current
     val useRow = with(cfg) { orientation == Configuration.ORIENTATION_LANDSCAPE || screenWidthDp >= 600 }
     var balance by rememberSaveable { mutableStateOf(0.0) }
+    var showForm by rememberSaveable { mutableStateOf(false) }
     val gradient = Brush.verticalGradient(
         listOf(
             MaterialTheme.colorScheme.primary.copy(.1f),
@@ -41,11 +44,19 @@ fun FinPerScreen() {
                 .background(gradient)
                 .windowInsetsPadding(WindowInsets.safeDrawing)
         ) {
-            AdaptiveLayout(
-                useRowLayout = useRow,
-                balance = balance,
-                onBalanceChange = { balance = it }
-            )
+            if (showForm) {
+                FormContainer(
+                    onBack = { showForm = false },
+                    onSubmitted = { showForm = false }
+                )
+            } else {
+                AdaptiveLayout(
+                    useRowLayout = useRow,
+                    balance = balance,
+                    onBalanceChange = { balance = it },
+                    onOpenForm = { showForm = true }
+                )
+            }
         }
     }
 }
@@ -54,7 +65,8 @@ fun FinPerScreen() {
 private fun AdaptiveLayout(
     useRowLayout: Boolean,
     balance: Double,
-    onBalanceChange: (Double) -> Unit
+    onBalanceChange: (Double) -> Unit,
+    onOpenForm: () -> Unit
 ) {
     val mod = Modifier
         .fillMaxSize()
@@ -70,7 +82,19 @@ private fun AdaptiveLayout(
             verticalAlignment = Alignment.CenterVertically
         ) {
             TitleSection(balance, Modifier.weight(1f))
-            ActionSection(add, reset, Modifier.widthIn(max = 300.dp))
+            Column(
+                Modifier.widthIn(max = 360.dp),
+                verticalArrangement = Arrangement.spacedBy(spacing),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                ActionSection(add, reset)
+                Button(
+                    onClick = onOpenForm,
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.primary)
+                ) { Text("Registrar movimiento", style = MaterialTheme.typography.labelLarge) }
+            }
         }
     } else {
         Column(
@@ -80,7 +104,43 @@ private fun AdaptiveLayout(
         ) {
             TitleSection(balance)
             ActionSection(add, reset)
+            Button(
+                onClick = onOpenForm,
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.primary)
+            ) { Text("Registrar movimiento", style = MaterialTheme.typography.labelLarge) }
         }
+    }
+}
+
+@Composable
+private fun FormContainer(onBack: () -> Unit, onSubmitted: () -> Unit) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp, vertical = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Start
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.Filled.ArrowBack, contentDescription = "Volver")
+            }
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = "Nuevo movimiento",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+        }
+        FinancialForm(
+            modifier = Modifier.fillMaxWidth(),
+            onSubmit = { _, _, _, _, _ -> onSubmitted() }
+        )
     }
 }
 
