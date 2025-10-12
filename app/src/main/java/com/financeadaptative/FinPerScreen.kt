@@ -160,7 +160,7 @@ private fun TitleSection(balance: Double, modifier: Modifier = Modifier) {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                "FinanceAdaptive",
+                "FinPer",
                 style = MaterialTheme.typography.headlineLarge,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.primary,
