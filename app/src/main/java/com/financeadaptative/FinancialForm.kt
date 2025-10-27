@@ -53,9 +53,9 @@ fun FinancialForm(
     val shape = RoundedCornerShape(12.dp)
 
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(16.dp),
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(

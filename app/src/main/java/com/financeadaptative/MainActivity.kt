@@ -10,6 +10,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             FinPerTheme {
+                // Pasamos una lambda que FinPerScreen puede usar para abrir la pantalla de animación
                 FinPerApp()
             }
         }

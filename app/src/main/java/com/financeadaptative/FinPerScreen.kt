@@ -16,7 +16,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import android.content.Intent
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
@@ -47,16 +49,20 @@ fun FinPerScreen() {
             if (showForm) {
                 FormContainer(
                     onBack = { showForm = false },
-                    onSubmitted = { showForm = false }
+                    onSubmitted = { amount ->
+                        // Añadimos el monto sin recargar la pantalla principal
+                        balance = balance + amount
+                        showForm = false
+                    }
                 )
             } else {
-                AdaptiveLayout(
-                    useRowLayout = useRow,
-                    balance = balance,
-                    onBalanceChange = { balance = it },
-                    onOpenForm = { showForm = true }
-                )
-            }
+                        AdaptiveLayout(
+                            useRowLayout = useRow,
+                            balance = balance,
+                            onBalanceChange = { balance = it },
+                            onOpenForm = { showForm = true }
+                        )
+                    }
         }
     }
 }
@@ -75,6 +81,7 @@ private fun AdaptiveLayout(
     val add = { onBalanceChange(balance + 100.0) }
     val reset = { onBalanceChange(0.0) }
     val spacing = 32.dp
+    val ctx = LocalContext.current
     if (useRowLayout) {
         Row(
             mod,
@@ -88,6 +95,16 @@ private fun AdaptiveLayout(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 ActionSection(add, reset)
+                Spacer(Modifier.height(6.dp))
+                Button(
+                    onClick = {
+                        val i = Intent(ctx, CircleActivity::class.java)
+                        ctx.startActivity(i)
+                    },
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.secondary)
+                ) { Text("Animación", style = MaterialTheme.typography.labelLarge) }
                 Button(
                     onClick = onOpenForm,
                     modifier = Modifier.fillMaxWidth().height(56.dp),
@@ -97,13 +114,23 @@ private fun AdaptiveLayout(
             }
         }
     } else {
-        Column(
+            Column(
             mod,
             verticalArrangement = Arrangement.spacedBy(spacing, Alignment.CenterVertically),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             TitleSection(balance)
             ActionSection(add, reset)
+                Spacer(Modifier.height(6.dp))
+                Button(
+                    onClick = {
+                        val i = Intent(ctx, CircleActivity::class.java)
+                        ctx.startActivity(i)
+                    },
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.secondary)
+                ) { Text("Animacion", style = MaterialTheme.typography.labelLarge) }
             Button(
                 onClick = onOpenForm,
                 modifier = Modifier.fillMaxWidth().height(56.dp),
@@ -115,7 +142,7 @@ private fun AdaptiveLayout(
 }
 
 @Composable
-private fun FormContainer(onBack: () -> Unit, onSubmitted: () -> Unit) {
+private fun FormContainer(onBack: () -> Unit, onSubmitted: (Double) -> Unit) {
     Column(
         Modifier
             .fillMaxSize()
@@ -139,7 +166,7 @@ private fun FormContainer(onBack: () -> Unit, onSubmitted: () -> Unit) {
         }
         FinancialForm(
             modifier = Modifier.fillMaxWidth(),
-            onSubmit = { _, _, _, _, _ -> onSubmitted() }
+            onSubmit = { _, amount, _, _, _ -> onSubmitted(amount) }
         )
     }
 }

@@ -22,6 +22,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".CircleActivity"
+            android:exported="false"
+            android:label="Animación de círculo"
+            android:theme="@style/Theme.FinanceAdaptative" />
     </application>
 
 </manifest>
