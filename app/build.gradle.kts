@@ -50,6 +50,12 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     // Icons extendidos de Material para usar Icons.Default.* (AttachMoney, DateRange, Label, etc.)
     implementation("androidx.compose.material:material-icons-extended")
+    // DataStore para configuración
+    implementation(libs.androidx.datastore.preferences)
+    // Coroutines para flujos y DataStore
+    implementation(libs.kotlinx.coroutines.android)
+    // viewModel() en Compose
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
