@@ -23,6 +23,8 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -40,6 +42,13 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import android.widget.Toast
+import androidx.work.Data
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import com.financeadaptative.BackgroundLogWorker
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.financeadaptative.ui.theme.FinPerTheme
@@ -57,6 +66,7 @@ fun FinPerScreen() {
     var showForm by rememberSaveable { mutableStateOf(false) }
     var showList by rememberSaveable { mutableStateOf(false) }
     var showSettings by rememberSaveable { mutableStateOf(false) }
+    var showWork by rememberSaveable { mutableStateOf(false) }
 
     // ViewModel conectado a Room
     val expenseVm: ExpenseViewModel = viewModel()
@@ -121,6 +131,8 @@ fun FinPerScreen() {
                 )
             } else if (showSettings) {
                 SettingsScreen(onClose = { showSettings = false })
+            } else if (showWork) {
+                WorkManagerScreen(onBack = { showWork = false })
             } else {
                 AdaptiveLayout(
                     useRowLayout = useRow,
@@ -134,33 +146,15 @@ fun FinPerScreen() {
             }
 
             // Floating action button para abrir el formulario desde la pantalla principal
-            if (!showForm && !showList && !showSettings) {
+            if (!showForm && !showList && !showSettings && !showWork) {
                 FloatingActionButton(
                     onClick = { showForm = true },
                     modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(end = 16.dp, bottom = 80.dp),
+                        .align(Alignment.TopEnd)
+                        .padding(end = 16.dp, top = 16.dp),
                     containerColor = MaterialTheme.colorScheme.primary
                 ) {
                     Icon(Icons.Filled.Add, contentDescription = "Nuevo movimiento", tint = MaterialTheme.colorScheme.onPrimary)
-                }
-
-                // Botón visible para iniciar el temporizador con notificación persistente
-                Button(
-                    onClick = {
-                        (rootCtx as? MainActivity)?.requestNotifPermissionAndStartTimer() ?: TimerService.start(rootCtx)
-                    },
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(start = 16.dp, bottom = 80.dp)
-                        .height(48.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.secondary)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Icon(Icons.Filled.Refresh, contentDescription = "Temporizador", tint = MaterialTheme.colorScheme.onSecondary)
-                        Text("Temporizador", style = MaterialTheme.typography.labelLarge)
-                    }
                 }
             }
 
@@ -169,6 +163,7 @@ fun FinPerScreen() {
                 val selectedIndex = when {
                     showList -> 1
                     showSettings -> 2
+                    showWork -> 3
                     else -> 0
                 }
                 NavigationBar(modifier = Modifier.align(Alignment.BottomCenter)) {
@@ -190,7 +185,117 @@ fun FinPerScreen() {
                         icon = { Icon(Icons.Filled.Settings, contentDescription = "Configuración") },
                         label = { Text("Ajustes") }
                     )
+                    NavigationBarItem(
+                        selected = selectedIndex == 3,
+                        onClick = { showWork = true; showSettings = false; showList = false },
+                        icon = { Icon(Icons.Filled.Schedule, contentDescription = "BG") },
+                        label = { Text("BG") }
+                    )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WorkManagerScreen(onBack: () -> Unit) {
+    val ctx = LocalContext.current
+    Box(Modifier.fillMaxSize()) {
+        // Top bar with back
+        Row(Modifier.align(Alignment.TopStart).padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            OutlinedButton(onClick = onBack, shape = RoundedCornerShape(10.dp)) {
+                Icon(Icons.Filled.ArrowBack, contentDescription = "Volver")
+                Spacer(Modifier.width(8.dp))
+                Text("Volver")
+            }
+        }
+
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp, vertical = 72.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text("Tareas BG", style = MaterialTheme.typography.titleLarge)
+
+            // Timer service control
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Button(
+                    onClick = { (ctx as? MainActivity)?.requestNotifPermissionAndStartTimer() ?: TimerService.start(ctx) },
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.secondary)
+                ) {
+                    Icon(Icons.Filled.Refresh, contentDescription = "Timer")
+                    Spacer(Modifier.width(8.dp))
+                    Text("Timer")
+                }
+                OutlinedButton(
+                    onClick = { TimerService.stop(ctx) },
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) { Text("Detener") }
+            }
+
+            // WorkManager immediate
+            Button(
+                onClick = {
+                    val input = Data.Builder()
+                        .putString(BackgroundLogWorker.KEY_MESSAGE, "Log inmediato desde Finance Adaptative")
+                        .build()
+                    val request = OneTimeWorkRequestBuilder<BackgroundLogWorker>()
+                        .setInputData(input)
+                        .addTag("one_time_log")
+                        .build()
+                    WorkManager.getInstance(ctx).enqueue(request)
+                },
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.tertiary)
+            ) {
+                Icon(Icons.Filled.Schedule, contentDescription = "Log ahora")
+                Spacer(Modifier.width(8.dp))
+                Text("Log ahora")
+            }
+
+            // WorkManager periodic
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Button(
+                    onClick = {
+                        val input = Data.Builder()
+                            .putString(BackgroundLogWorker.KEY_MESSAGE, "Registro periódico desde Finance Adaptative")
+                            .build()
+                        val request = PeriodicWorkRequestBuilder<BackgroundLogWorker>(15, java.util.concurrent.TimeUnit.MINUTES)
+                            .setInputData(input)
+                            .addTag(BackgroundLogWorker.UNIQUE_NAME)
+                            .build()
+                        WorkManager.getInstance(ctx).enqueueUniquePeriodicWork(
+                            BackgroundLogWorker.UNIQUE_NAME,
+                            ExistingPeriodicWorkPolicy.UPDATE,
+                            request
+                        )
+                        Toast.makeText(
+                            ctx,
+                            "Periódico: cada 15 min, tag=${BackgroundLogWorker.UNIQUE_NAME}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    },
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) { Text("Periódico") }
+                OutlinedButton(
+                    onClick = {
+                        WorkManager.getInstance(ctx).cancelUniqueWork(BackgroundLogWorker.UNIQUE_NAME)
+                        Toast.makeText(
+                            ctx,
+                            "Periódico detenido: tag=${BackgroundLogWorker.UNIQUE_NAME}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    },
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) { Text("Detener") }
             }
         }
     }

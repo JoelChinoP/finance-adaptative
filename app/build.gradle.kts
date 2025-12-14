@@ -58,6 +58,9 @@ dependencies {
     // viewModel() en Compose
     implementation(libs.androidx.lifecycle.viewmodel.compose)
 
+    // WorkManager para tareas en segundo plano
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
+
     // Room - persistencia local
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
