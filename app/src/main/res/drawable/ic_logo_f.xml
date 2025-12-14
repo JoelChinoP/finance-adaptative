@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+    
+    <!-- Fondo circular con degradado -->
+    <path
+        android:fillColor="#4CAF50"
+        android:pathData="M60,10 A50,50 0 1,1 60,110 A50,50 0 1,1 60,10 Z"/>
+    
+    <!-- Letra F estilizada -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M45,40 L75,40 L75,48 L55,48 L55,55 L70,55 L70,63 L55,63 L55,80 L45,80 Z"/>
+    
+    <!-- Acento decorativo (línea diagonal) -->
+    <path
+        android:fillColor="#81C784"
+        android:pathData="M72,42 L78,42 L78,50 L72,50 Z"
+        android:rotation="45"
+        android:pivotX="75"
+        android:pivotY="45"/>
+</vector>

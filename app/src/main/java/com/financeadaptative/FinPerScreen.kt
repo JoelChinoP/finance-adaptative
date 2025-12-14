@@ -69,6 +69,7 @@ fun FinPerScreen() {
             MaterialTheme.colorScheme.background
         )
     )
+    val rootCtx = LocalContext.current
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Box(
             Modifier
@@ -143,6 +144,24 @@ fun FinPerScreen() {
                 ) {
                     Icon(Icons.Filled.Add, contentDescription = "Nuevo movimiento", tint = MaterialTheme.colorScheme.onPrimary)
                 }
+
+                // Botón visible para iniciar el temporizador con notificación persistente
+                Button(
+                    onClick = {
+                        (rootCtx as? MainActivity)?.requestNotifPermissionAndStartTimer() ?: TimerService.start(rootCtx)
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(start = 16.dp, bottom = 80.dp)
+                        .height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.secondary)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Icon(Icons.Filled.Refresh, contentDescription = "Temporizador", tint = MaterialTheme.colorScheme.onSecondary)
+                        Text("Temporizador", style = MaterialTheme.typography.labelLarge)
+                    }
+                }
             }
 
             // Barra de navegación inferior para Home / Movimientos / Configuración
@@ -209,6 +228,26 @@ private fun AdaptiveLayout(
             ) {
                 ActionSection(add, reset)
                 Spacer(Modifier.height(6.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Button(
+                        onClick = {
+                            (ctx as? MainActivity)?.requestNotifPermissionAndStartTimer() ?: TimerService.start(ctx)
+                        },
+                        modifier = Modifier.weight(1f).height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.primary)
+                    ) { Text("Iniciar temporizador", style = MaterialTheme.typography.labelLarge) }
+                    OutlinedButton(
+                        onClick = { (ctx as? MainActivity)?.debugPostNotification() },
+                        modifier = Modifier.weight(1f).height(48.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    ) { Text("Probar notificación", style = MaterialTheme.typography.labelLarge) }
+                    OutlinedButton(
+                        onClick = { TimerService.stop(ctx) },
+                        modifier = Modifier.weight(1f).height(48.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    ) { Text("Detener", style = MaterialTheme.typography.labelLarge) }
+                }
                 Button(
                     onClick = {
                         val i = Intent(ctx, CircleActivity::class.java)
@@ -242,6 +281,27 @@ private fun AdaptiveLayout(
             TitleSection(balance, currencySymbol)
             ActionSection(add, reset)
             Spacer(Modifier.height(6.dp))
+                // Botones de temporizador con notificación persistente
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Button(
+                        onClick = {
+                            (ctx as? MainActivity)?.requestNotifPermissionAndStartTimer() ?: TimerService.start(ctx)
+                        },
+                        modifier = Modifier.weight(1f).height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.primary)
+                    ) { Text("Iniciar temporizador", style = MaterialTheme.typography.labelLarge) }
+                    OutlinedButton(
+                        onClick = { (ctx as? MainActivity)?.debugPostNotification() },
+                        modifier = Modifier.weight(1f).height(48.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    ) { Text("Probar notificación", style = MaterialTheme.typography.labelLarge) }
+                    OutlinedButton(
+                        onClick = { TimerService.stop(ctx) },
+                        modifier = Modifier.weight(1f).height(48.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    ) { Text("Detener", style = MaterialTheme.typography.labelLarge) }
+                }
             Button(
                 onClick = {
                     val i = Intent(ctx, CircleActivity::class.java)
