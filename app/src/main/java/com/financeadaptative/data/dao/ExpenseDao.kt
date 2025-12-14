@@ -18,6 +18,9 @@ interface ExpenseDao {
 
     @Delete
     suspend fun delete(expense: Expense)
+    
+    @Query("DELETE FROM expenses WHERE id = :id")
+    suspend fun deleteById(id: Long)
 
     @Query(
         "SELECT * FROM expenses WHERE occurredAt BETWEEN :from AND :to ORDER BY occurredAt DESC"
@@ -37,4 +40,7 @@ interface ExpenseDao {
 
     @Query("SELECT COUNT(*) FROM expenses")
     suspend fun count(): Int
+    
+        @Query("SELECT * FROM expenses ORDER BY occurredAt DESC")
+        fun observeAll(): Flow<List<Expense>>
 }

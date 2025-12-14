@@ -14,4 +14,7 @@ interface CategoryDao {
 
     @Query("UPDATE categories SET active = 0 WHERE id = :id")
     suspend fun softDelete(id: Long)
+
+    @Query("SELECT id FROM categories WHERE name = :name LIMIT 1")
+    suspend fun idByName(name: String): Long?
 }

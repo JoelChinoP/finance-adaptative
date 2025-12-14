@@ -20,4 +20,10 @@ interface AccountDao {
 
     @Query("SELECT SUM(initialBalance) FROM accounts WHERE active = 1")
     fun observeTotalInitialBalance(): Flow<Double?>
+
+    @Query("SELECT COUNT(*) FROM accounts")
+    suspend fun count(): Int
+
+    @Query("SELECT id FROM accounts ORDER BY id LIMIT 1")
+    suspend fun firstId(): Long?
 }

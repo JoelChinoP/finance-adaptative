@@ -67,4 +67,35 @@ class FinanceDatabaseInstrumentedTest {
         val net = db.expenseDao().observeNetForAccount(accountId).first() ?: 0.0
         assertEquals(-25.0, net, 0.001)
     }
+
+    @Test
+    fun editMetadataWithoutChangingAmount() = runBlocking {
+        val accountId = db.accountDao().upsert(Account(name = "Principal"))
+        val categoryId = db.categoryDao().upsert(Category(name = "Transporte"))
+        val eId = db.expenseDao().upsert(
+            Expense(
+                accountId = accountId,
+                categoryId = categoryId,
+                amount = 10.0,
+                movementType = MovementType.EXPENSE,
+                description = "Taxi",
+                occurredAt = LocalDateTime.now()
+            )
+        )
+        // Editamos descripción solamente
+        db.expenseDao().upsert(
+            Expense(
+                id = eId,
+                accountId = accountId,
+                categoryId = categoryId,
+                amount = 10.0, // monto igual
+                movementType = MovementType.EXPENSE,
+                description = "Taxi nocturno"
+            )
+        )
+        val list = db.expenseDao().observeAll().first()
+        val edited = list.first { it.id == eId }
+        assertEquals("Taxi nocturno", edited.description)
+        assertEquals(10.0, edited.amount, 0.001)
+    }
 }

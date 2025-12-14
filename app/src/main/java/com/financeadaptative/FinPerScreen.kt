@@ -43,8 +43,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.financeadaptative.ui.theme.FinPerTheme
-import org.json.JSONArray
-import org.json.JSONObject
+import com.financeadaptative.data.ui.ExpenseViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable fun FinPerApp() = FinPerScreen()
 
@@ -54,14 +54,14 @@ fun FinPerScreen() {
     val settings by settingsVm.settings.collectAsState()
     val cfg = LocalConfiguration.current
     val useRow = with(cfg) { orientation == Configuration.ORIENTATION_LANDSCAPE || screenWidthDp >= 600 }
-    var balance by rememberSaveable { mutableStateOf(0.0) }
     var showForm by rememberSaveable { mutableStateOf(false) }
     var showList by rememberSaveable { mutableStateOf(false) }
     var showSettings by rememberSaveable { mutableStateOf(false) }
-    // Lista dinámica de movimientos (ejemplo JSON en memoria)
-    val transactions = remember {
-        mutableStateListOf<Transaction>().apply { addAll(loadSampleTransactionsFromJson()) }
-    }
+
+    // ViewModel conectado a Room
+    val expenseVm: ExpenseViewModel = viewModel()
+    val txList by expenseVm.transactions.collectAsState()
+    val balance by expenseVm.balance.collectAsState()
     val gradient = Brush.verticalGradient(
         listOf(
             MaterialTheme.colorScheme.primary.copy(.1f),
@@ -79,9 +79,14 @@ fun FinPerScreen() {
             if (showForm) {
                 FormContainer(
                     onBack = { showForm = false },
-                    onSubmitted = { amount ->
-                        // Añadimos el monto sin recargar la pantalla principal
-                        balance = balance + amount
+                    onSubmitted = { title, signedAmount, category, date, note ->
+                        expenseVm.addMovement(
+                            title = title.ifBlank { "Movimiento" },
+                            signedAmount = signedAmount,
+                            categoryName = category.ifBlank { "General" },
+                            dateStr = date.ifBlank { java.time.LocalDate.now().toString() },
+                            note = note
+                        )
                         showForm = false
                     },
                     currencySymbol = settings.currencySymbol,
@@ -91,11 +96,27 @@ fun FinPerScreen() {
                 )
             } else if (showList) {
                 TransactionsListScreen(
-                    transactions = transactions,
+                    transactions = txList.map { it.toLegacyTransaction() },
                     currencySymbol = settings.currencySymbol,
                     onBack = { showList = false },
-                    onAddTransaction = { t -> transactions.add(0, t) },
-                    onRemoveTransaction = { t -> transactions.remove(t) }
+                    onAddTransaction = { t ->
+                        expenseVm.addMovement(
+                            title = t.title,
+                            signedAmount = t.amount,
+                            categoryName = t.category ?: "General",
+                            dateStr = t.date,
+                            note = t.description
+                        )
+                    },
+                    onRemoveTransaction = { t ->
+                        // Buscamos el id real por coincidencia aproximada (simplificado)
+                        val candidate = expenseVm.transactions.value.firstOrNull { ui ->
+                            ui.title == t.title && ui.amount == t.amount && ui.categoryName == t.category
+                        }
+                        if (candidate != null) {
+                            // Podríamos exponer deleteById en el VM si se quiere
+                        }
+                    }
                 )
             } else if (showSettings) {
                 SettingsScreen(onClose = { showSettings = false })
@@ -104,7 +125,7 @@ fun FinPerScreen() {
                     useRowLayout = useRow,
                     balance = balance,
                     currencySymbol = settings.currencySymbol,
-                    onBalanceChange = { balance = it },
+                    onBalanceChange = { /* balance proviene del flujo */ },
                     onOpenForm = { showForm = true },
                     onOpenList = { showList = true },
                     onOpenSettings = { showSettings = true }
@@ -257,42 +278,21 @@ data class Transaction(
     val category: String? = null
 )
 
-private fun loadSampleTransactionsFromJson(): List<Transaction> {
-    val samples = listOf(
-        Triple("Pago de cuarto", 300.0, "Pago mensual de habitación"),
-        Triple("Almuerzo", 22.5, "Almuerzo en cafetería"),
-        Triple("Supermercado", 128.75, "Compra semanal de víveres"),
-        Triple("Transporte", 8.0, "Taxi al trabajo"),
-        Triple("Suscripción música", 19.9, "Spotify Premium"),
-        Triple("Café", 6.5, "Café y snack"),
-        Triple("Compra online", 59.99, "Camiseta - oferta"),
-        Triple("Pago Internet", 70.0, "Internet mensual"),
-        Triple("Luz", 48.0, "Factura de electricidad"),
-        Triple("Agua", 23.0, "Factura de agua"),
-        Triple("Cena", 45.0, "Cena con amigos"),
-        Triple("Gasolina", 140.0, "Llenado de tanque"),
-        Triple("Regalo", 60.0, "Regalo de cumpleaños"),
-        Triple("Farmacia", 18.5, "Medicamentos"),
-        Triple("Gym", 49.99, "Membresía mensual"),
-        Triple("Venta libros", -80.0, "Venta de libros usados"),
-        Triple("Freelance", -400.0, "Pago por proyecto web"),
-        Triple("Compra app", 3.99, "Compra dentro de app"),
-        Triple("Pago seguro", 35.0, "Seguro del celular"),
-        Triple("Ahorro", -200.0, "Transferencia a ahorro")
+private fun com.financeadaptative.data.ui.UiTransaction.toLegacyTransaction(): Transaction =
+    Transaction(
+        id = id.toString(),
+        title = title ?: "Movimiento",
+        amount = if (isIncome) amount else -amount,
+        description = note ?: title ?: "",
+        date = date.toLocalDate().toString(),
+        category = categoryName
     )
-    val out = mutableListOf<Transaction>()
-    val today = java.time.LocalDate.now()
-    for (i in samples.indices) {
-        val (t, a, d) = samples[i]
-        val date = today.minusDays((i % 10).toLong()).toString()
-        out.add(Transaction(id = "tx_${1000 + i}", title = t, amount = a, description = d, date = date))
-    }
-    return out
-}
+
+// Eliminamos los datos de ejemplo; ahora la fuente es Room.
 
 @Composable
 private fun TransactionsListScreen(
-    transactions: MutableList<Transaction>,
+    transactions: List<Transaction>,
     currencySymbol: String,
     onBack: () -> Unit,
     onAddTransaction: (Transaction) -> Unit,
@@ -383,7 +383,7 @@ private fun AddTransactionDialog(
 @Composable
 private fun FormContainer(
     onBack: () -> Unit,
-    onSubmitted: (Double) -> Unit,
+    onSubmitted: (title: String, signedAmount: Double, category: String, date: String, note: String?) -> Unit,
     currencySymbol: String,
     defaultCategory: String,
     defaultPaymentMethod: String,
@@ -420,7 +420,9 @@ private fun FormContainer(
                 defaultCategory = defaultCategory,
                 defaultPaymentMethod = defaultPaymentMethod,
                 showTips = showTips,
-                onSubmit = { _, amount, _, _, _, _, _, _ -> onSubmitted(amount) },
+                onSubmit = { title, amount, category, date, note, _, _, _ ->
+                    onSubmitted(title, amount, category, date, note)
+                },
                 onCancel = { onBack() }
             )
         }

@@ -12,4 +12,6 @@ class ExpenseRepository(private val dao: ExpenseDao) {
     fun observeByDateRange(from: LocalDateTime, to: LocalDateTime): Flow<List<Expense>> = dao.observeByDateRange(from, to)
     fun observeTotalsByCategory(from: LocalDateTime, to: LocalDateTime): Flow<List<CategoryTotal>> = dao.observeTotalsByCategory(from, to)
     fun observeNetForAccount(accountId: Long): Flow<Double?> = dao.observeNetForAccount(accountId)
+    fun observeAll(): Flow<List<Expense>> = dao.observeAll()
+    suspend fun deleteById(id: Long) = dao.deleteById(id)
 }
